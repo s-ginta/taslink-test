@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TasLink 動作検証マニュアル（本番環境版）</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-light: #dbeafe;
+    --success: #16a34a;
+    --warning: #ea580c;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Yu Gothic UI", "Hiragino Sans", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    line-height: 1.7;
+  }
+  .prod-banner {
+    background: linear-gradient(90deg, var(--danger) 0%, #b91c1c 100%);
+    color: white;
+    padding: 12px 24px;
+    text-align: center;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .prod-banner .warn-icon {
+    font-size: 20px;
+    margin-right: 8px;
+  }
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 300px;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    position: sticky;
+    top: 48px;
+    height: calc(100vh - 48px);
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar h2 { font-size: 16px; margin: 0 0 12px; color: var(--primary); }
+  .sidebar ul { list-style: none; padding: 0; margin: 0; }
+  .sidebar li { margin: 4px 0; }
+  .sidebar a {
+    display: block;
+    padding: 6px 10px;
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .sidebar a:hover { background: var(--primary-light); }
+  .sidebar a.danger-link { color: var(--danger); font-weight: bold; }
+  main {
+    flex: 1;
+    padding: 32px 48px;
+    max-width: 1000px;
+  }
+  h1 { color: var(--primary); border-bottom: 3px solid var(--primary); padding-bottom: 8px; margin-top: 0; }
+  h2 {
+    background: var(--primary);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-top: 40px;
+    scroll-margin-top: 80px;
+  }
+  h2.danger-h { background: var(--danger); }
+  h3 {
+    color: var(--primary);
+    border-left: 4px solid var(--primary);
+    padding-left: 12px;
+    margin-top: 32px;
+    scroll-margin-top: 80px;
+  }
+  h4 { color: var(--text); margin-top: 24px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .card.danger-card { border: 2px solid var(--danger); background: #fef2f2; }
+  .callout {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    border-left: 4px solid;
+  }
+  .callout-info { background: #eff6ff; border-color: var(--primary); }
+  .callout-warn { background: #fff7ed; border-color: var(--warning); }
+  .callout-danger { background: var(--danger-light); border-color: var(--danger); }
+  .callout-success { background: #f0fdf4; border-color: var(--success); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    background: white;
+  }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+  th { background: var(--primary-light); }
+  th.danger-th { background: var(--danger-light); }
+  code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--danger);
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+  }
+  pre code { background: transparent; color: #e2e8f0; }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .checklist li:hover { background: var(--primary-light); }
+  .checklist li.danger-li:hover { background: var(--danger-light); }
+  .checklist input[type="checkbox"] {
+    margin-right: 12px;
+    margin-top: 6px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .checklist label { cursor: pointer; flex: 1; }
+  .checklist li.done label {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  .section-progress {
+    display: inline-block;
+    background: var(--primary-light);
+    color: var(--primary);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    margin-left: 12px;
+    font-weight: normal;
+  }
+  .toolbar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  button:hover { background: #1d4ed8; }
+  button.danger { background: var(--danger); }
+  button.danger:hover { background: #b91c1c; }
+  button.secondary { background: var(--muted); }
+  .overall-progress {
+    background: var(--primary-light);
+    color: var(--primary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+  }
+  .progress-bar {
+    background: var(--border);
+    border-radius: 20px;
+    height: 8px;
+    overflow: hidden;
+    margin: 6px 0;
+  }
+  .progress-bar-fill {
+    background: var(--success);
+    height: 100%;
+    transition: width 0.3s;
+  }
+  .note-area {
+    width: 100%;
+    min-height: 80px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    margin-top: 8px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 8px;
+  }
+  .badge-red { background: #fee2e2; color: var(--danger); }
+  .badge-orange { background: #ffedd5; color: var(--warning); }
+  .badge-blue { background: #dbeafe; color: var(--primary); }
+  .badge-green { background: #dcfce7; color: var(--success); }
+  .badge-forbidden { background: var(--danger); color: white; padding: 4px 10px; }
+  .do-dont-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .do-box, .dont-box {
+    padding: 16px;
+    border-radius: 8px;
+  }
+  .do-box { background: #f0fdf4; border: 2px solid var(--success); }
+  .dont-box { background: #fef2f2; border: 2px solid var(--danger); }
+  .do-box h4, .dont-box h4 { margin-top: 0; }
+  .do-box h4 { color: var(--success); }
+  .dont-box h4 { color: var(--danger); }
+
+  @media print {
+    .sidebar, .toolbar button, .no-print, .prod-banner { display: none; }
+    main { padding: 0; }
+    h2 { background: none; color: var(--primary); border-bottom: 2px solid var(--primary); }
+    .checklist input { border: 1px solid black; }
+  }
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; top: 0; }
+    main { padding: 20px; }
+    .do-dont-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="prod-banner no-print">
+  <span class="warn-icon">⚠️</span>
+  この検証は<strong>本番環境</strong>で行います。実データを絶対に触らない・削除しないこと。テストデータには必ず <code style="background:white;color:var(--danger);">[TEST]</code> をつけてください。
+</div>
+
+<div class="layout">
+
+<aside class="sidebar no-print">
+  <h2>目次</h2>
+  <div class="overall-progress" id="overall-progress">全体: 0 / 0</div>
+  <div class="progress-bar"><div class="progress-bar-fill" id="overall-bar" style="width:0%"></div></div>
+  <ul>
+    <li><a href="#intro">1. マニュアルの使い方</a></li>
+    <li><a href="#prod-rules" class="danger-link">2. 本番検証の絶対ルール</a></li>
+    <li><a href="#prep">3. 事前準備</a></li>
+    <li><a href="#rules">4. 検証の基本ルール</a></li>
+    <li><a href="#report">5. バグ報告方法</a></li>
+    <li><a href="#common">6. 共通チェック項目</a></li>
+    <li><a href="#screens">7. 画面別チェックリスト</a>
+      <ul>
+        <li><a href="#s-login">SCR-001 ログイン</a></li>
+        <li><a href="#s-dash">SCR-002 ダッシュボード</a></li>
+        <li><a href="#s-workers">SCR-003 ワーカー一覧</a></li>
+        <li><a href="#s-worker-new">SCR-004 ワーカー登録</a></li>
+        <li><a href="#s-worker-detail">SCR-005 ワーカー詳細</a></li>
+        <li><a href="#s-worker-edit">SCR-006 ワーカー編集</a></li>
+        <li><a href="#s-proposals">SCR-007 提案一覧</a></li>
+        <li><a href="#s-skill">SCR-008 スキルシート</a></li>
+        <li><a href="#s-contact">SCR-009 連絡履歴</a></li>
+        <li><a href="#s-status">SCR-010 ステータス履歴</a></li>
+        <li><a href="#s-jo">SCR-011 求人案件一覧</a></li>
+        <li><a href="#s-jo-new">SCR-012 求人案件登録</a></li>
+        <li><a href="#s-jo-detail">SCR-013 求人案件詳細</a></li>
+        <li><a href="#s-fac">SCR-014 施設一覧</a></li>
+        <li><a href="#s-fac-new">SCR-015 施設登録</a></li>
+        <li><a href="#s-fac-detail">SCR-016 施設詳細</a></li>
+        <li><a href="#s-fac-edit">SCR-017 施設編集</a></li>
+        <li><a href="#s-map">SCR-018 地図</a></li>
+        <li><a href="#s-tasks">SCR-019 タスク一覧</a></li>
+        <li><a href="#s-settings">SCR-020 設定</a></li>
+        <li><a href="#s-staff">SCR-021 スタッフ管理</a></li>
+        <li><a href="#s-tags">SCR-022 タグ管理</a></li>
+        <li><a href="#s-deals">追加機能（案件・テレアポ）</a></li>
+      </ul>
+    </li>
+    <li><a href="#scenario">8. シナリオテスト</a></li>
+    <li><a href="#env">9. 検証環境バリエーション</a></li>
+    <li><a href="#testdata" class="danger-link">10. テストデータ管理・クリーンアップ</a></li>
+    <li><a href="#record">11. 検証記録・メモ</a></li>
+    <li><a href="#faq">12. よくある質問</a></li>
+  </ul>
+</aside>
+
+<main>
+
+<h1>TasLink 動作検証マニュアル（本番環境版）</h1>
+<p class="callout callout-danger">
+  <strong>⚠️ このマニュアルは「本番環境」での検証を前提としています。</strong><br>
+  本番環境には実際のお客様データ・スタッフ情報など <strong>個人情報（PII）</strong> が入っています。<br>
+  <strong>まず「2. 本番検証の絶対ルール」を必ず読んでから作業を始めてください。</strong>
+</p>
+
+<div class="toolbar no-print">
+  <button onclick="window.print()">印刷 / PDF保存</button>
+  <button class="secondary" onclick="expandAllNotes()">メモ欄を全て展開</button>
+  <button class="danger" onclick="resetProgress()">進捗をリセット</button>
+  <span style="color:var(--muted); font-size:13px;">※ 進捗はこのPC・このブラウザ内にのみ保存</span>
+</div>
+
+<!-- 1. 使い方 -->
+<h2 id="intro">1. このマニュアルの使い方</h2>
+<div class="card">
+  <h4>対象者</h4>
+  <ul>
+    <li>TasLink の画面を実際に操作して「思った通りに動くか」を確認できる方</li>
+    <li>プログラミングの知識は不要</li>
+  </ul>
+
+  <h4>進め方</h4>
+  <ol>
+    <li><strong>まず「2. 本番検証の絶対ルール」を必ず全部読む</strong>（ここが最重要）</li>
+    <li>「3. 事前準備」でテスト用アカウントを受け取ってログイン</li>
+    <li>「4〜6」を読んで検証の観点を頭に入れる</li>
+    <li>「7. 画面別チェックリスト」を上から1画面ずつ実施</li>
+    <li>1日1〜2画面ペースで丁寧に確認</li>
+    <li>見つけたバグは「5. バグ報告方法」に従って記録</li>
+    <li><strong>1日の終わりに「10. テストデータ管理」でクリーンアップ</strong></li>
+  </ol>
+</div>
+
+<!-- 2. 本番検証の絶対ルール -->
+<h2 id="prod-rules" class="danger-h">2. ⚠️ 本番検証の絶対ルール（必読）</h2>
+
+<div class="card danger-card">
+  <h3 style="color:var(--danger); border-left-color:var(--danger); margin-top:0;">これを守らないと重大事故になります</h3>
+  <p>本番環境には <strong>実際のワーカーさん・施設・案件・スタッフの個人情報</strong> が入っています。誤操作は取り返しがつきません。以下は <strong>例外なく守る</strong> ルールです。</p>
+</div>
+
+<div class="do-dont-grid">
+  <div class="do-box">
+    <h4>✅ やっていいこと</h4>
+    <ul>
+      <li>専用のテストアカウントでログインする</li>
+      <li>新規作成（ワーカー/施設/案件/タグ 等）を <code>[TEST]</code> プレフィックス付きで行う</li>
+      <li>自分が作った <code>[TEST]</code> データを編集・削除する</li>
+      <li>画面表示・レイアウト・検索の動作確認</li>
+      <li>スクロール・ページ送り・フィルタ切替</li>
+      <li>ログイン・ログアウト</li>
+      <li>エラーメッセージや文言の確認</li>
+    </ul>
+  </div>
+  <div class="dont-box">
+    <h4>❌ 絶対にやってはいけないこと</h4>
+    <ul>
+      <li><strong>実データの編集・削除（プレフィックスなしのデータは全部本物）</strong></li>
+      <li><strong>他の人が作ったデータの削除</strong></li>
+      <li>「全件削除」「一括操作」ボタンの使用</li>
+      <li>管理者アカウントの使用（テストアカウントのみ使う）</li>
+      <li>スタッフ管理での実スタッフの編集・削除</li>
+      <li>タグの実データ削除（使用中のタグを消すと本物のワーカーからも消える）</li>
+      <li>Zoom Phone・Google Calendar 等の <strong>外部連携ボタン</strong> の使用（実際に電話がかかる・カレンダーに書き込まれる可能性）</li>
+      <li>メール送信・SMS送信・LINE送信の実行</li>
+      <li>実データを含むスクリーンショットの <strong>マスクなし共有</strong></li>
+      <li><strong>セキュリティ系のわざと壊す入力</strong>（<code>&lt;script&gt;</code> や SQL 風文字列など。本番でやると事故る）</li>
+    </ul>
+  </div>
+</div>
+
+<h3>2.1 テストデータの命名規則</h3>
+<div class="card">
+  <p>新規作成するデータには <strong>必ず</strong> 以下の規則で入力してください。目視で「これはテスト」と分かるようにするためです。</p>
+  <table>
+    <thead><tr><th>項目</th><th>入力ルール</th><th>例</th></tr></thead>
+    <tbody>
+      <tr><td>ワーカー氏名</td><td><code>[TEST] </code> + 架空の名前</td><td><code>[TEST] 検証太郎</code></td></tr>
+      <tr><td>フリガナ</td><td>架空</td><td><code>ケンショウ タロウ</code></td></tr>
+      <tr><td>電話番号</td><td><code>000-0000-0000</code> または <code>090-0000-0000</code></td><td><code>000-0000-0001</code></td></tr>
+      <tr><td>メールアドレス</td><td><code>@example.com</code> ドメイン</td><td><code>test01@example.com</code></td></tr>
+      <tr><td>住所</td><td>実在しない架空住所</td><td><code>東京都テスト区テスト町1-1-1</code></td></tr>
+      <tr><td>施設名</td><td><code>[TEST] </code> + 架空名</td><td><code>[TEST] 検証用施設A</code></td></tr>
+      <tr><td>案件タイトル</td><td><code>[TEST] </code> + 内容</td><td><code>[TEST] 動作確認用案件</code></td></tr>
+      <tr><td>タグ名</td><td><code>[TEST] </code> + 内容</td><td><code>[TEST] 検証タグ</code></td></tr>
+      <tr><td>メモ・備考</td><td>先頭に <code>[検証用データ / 削除OK]</code></td><td><code>[検証用データ / 削除OK] テスト中</code></td></tr>
+    </tbody>
+  </table>
+  <div class="callout callout-warn">
+    <strong>なぜプレフィックスを付ける？</strong>
+    <ul style="margin:4px 0;">
+      <li>あとから一括削除しやすい</li>
+      <li>他のスタッフが「これは何？」と混乱しない</li>
+      <li>万一クリーンアップ忘れがあっても、実データと区別できる</li>
+      <li>誤って営業活動対象にならない</li>
+    </ul>
+  </div>
+</div>
+
+<h3>2.2 判断に迷ったときのルール</h3>
+<div class="card">
+  <table>
+    <thead><tr><th class="danger-th">状況</th><th class="danger-th">やってはいけないこと</th><th>代わりにやること</th></tr></thead>
+    <tbody>
+      <tr><td>「このボタン、押したらどうなるんだろう？」</td><td>押してみる</td><td>マニュアル or 担当者に確認</td></tr>
+      <tr><td>「このデータ、消してみようかな」</td><td>削除ボタンを押す</td><td><code>[TEST]</code> データ以外は絶対触らない</td></tr>
+      <tr><td>「一括削除できるか試したい」</td><td>実際に押す</td><td>スキップ or エンジニアに依頼</td></tr>
+      <tr><td>「エラー画面を出してみたい」</td><td>変な入力を送る</td><td>スキップ or エンジニアに依頼</td></tr>
+      <tr><td>「外部連携ボタン試したい」</td><td>クリック</td><td>スキップ or 事前に担当者と時間を合わせる</td></tr>
+      <tr><td>「他のワーカーの詳細も見てみよう」</td><td>他人の情報を長く開いておく</td><td>PII を見たら即閉じる・スクショ厳禁</td></tr>
+    </tbody>
+  </table>
+  <div class="callout callout-danger">
+    <strong>迷ったら「やらない」が正解。</strong> 担当者に確認してから進める。躊躇したくらいで進捗は遅れません。
+  </div>
+</div>
+
+<h3>2.3 スクリーンショットの取り扱い</h3>
+<div class="card">
+  <p>バグ報告用のスクショに <strong>実データの個人情報</strong> が写り込むと情報漏洩リスクがあります。</p>
+  <ul>
+    <li>できるだけ <code>[TEST]</code> データが写っている状態で撮る</li>
+    <li>実データが写ってしまった場合は、報告前に <strong>黒塗り</strong> する（氏名・電話・メール・住所・顔写真など）</li>
+    <li>黒塗りは Windows なら「ペイント」で塗りつぶし、Mac なら「プレビュー」の四角形ツール</li>
+    <li>スクショを Slack・スプレッドシート等に貼るときは、公開範囲を <strong>関係者のみ</strong> にする</li>
+    <li>URL バー（例: <code>/workers/1234</code>）の ID もできれば隠す</li>
+  </ul>
+  <div class="callout callout-warn">
+    黒塗りが難しいバグの場合は、スクショ無しで「文字だけの再現手順」で報告してもOK。担当者が再現します。
+  </div>
+</div>
+
+<h3>2.4 検証時間帯の推奨</h3>
+<div class="card">
+  <ul>
+    <li>本番利用者が少ない <strong>平日午前中の早め</strong> や <strong>夕方以降</strong> がおすすめ</li>
+    <li>大量にデータを作る検証は <strong>業務時間外</strong> に</li>
+    <li>もしテスト中に本番利用者から「動作がおかしい」等の連絡が来たら、<strong>即中断して担当者に連絡</strong></li>
+  </ul>
+</div>
+
+<!-- 3. 事前準備 -->
+<h2 id="prep">3. 事前準備 <span class="section-progress" data-progress="prep"></span></h2>
+<div class="card">
+  <h4>用意するもの</h4>
+  <ul class="checklist" data-section="prep">
+    <li><input type="checkbox" id="prep-1"><label for="prep-1">インターネットに繋がる PC</label></li>
+    <li><input type="checkbox" id="prep-2"><label for="prep-2">Google Chrome または Microsoft Edge（推奨）</label></li>
+    <li><input type="checkbox" id="prep-3"><label for="prep-3"><strong>検証専用アカウント</strong>のメール・パスワード（担当者に発行を依頼）</label></li>
+    <li><input type="checkbox" id="prep-4"><label for="prep-4">スクリーンショットが撮れる状態（<code>Win+Shift+S</code> / <code>Cmd+Shift+4</code>）</label></li>
+    <li><input type="checkbox" id="prep-5"><label for="prep-5">画像編集ツール（黒塗り用。Windows ペイント / Mac プレビュー）</label></li>
+    <li><input type="checkbox" id="prep-6"><label for="prep-6">検証記録用のスプレッドシート or ドキュメント</label></li>
+    <li><input type="checkbox" id="prep-7"><label for="prep-7">「2. 本番検証の絶対ルール」を読了した</label></li>
+    <li><input type="checkbox" id="prep-8"><label for="prep-8">テストデータ命名規則を理解した</label></li>
+  </ul>
+
+  <h4>検証環境の URL とアカウント</h4>
+  <ul>
+    <li>本番環境 URL: <strong>担当者に確認</strong></li>
+    <li>検証専用アカウント: <strong>担当者に発行してもらう</strong>
+      <ul>
+        <li>推奨命名: <code>qa-test-yamada@example.com</code>（誰の検証アカウントか分かる）</li>
+        <li>権限: <strong>一般ユーザー</strong>（管理者権限は絶対に付与しない）</li>
+      </ul>
+    </li>
+  </ul>
+
+  <div class="callout callout-danger">
+    <strong>⚠️ 実スタッフのアカウントは絶対に使わない。</strong> 検証専用アカウントが発行されていない場合は、担当者に発行を依頼してから始めてください。
+  </div>
+
+  <h4>ログインして最初にすること</h4>
+  <ul class="checklist" data-section="prep">
+    <li><input type="checkbox" id="prep-9"><label for="prep-9">URL を開く</label></li>
+    <li><input type="checkbox" id="prep-10"><label for="prep-10">検証専用アカウントでログイン</label></li>
+    <li><input type="checkbox" id="prep-11"><label for="prep-11">ダッシュボードが表示されることを確認</label></li>
+    <li><input type="checkbox" id="prep-12"><label for="prep-12">サイドバーに「スタッフ管理」等の管理者メニューが出ていないことを確認（出ていたら権限強すぎ、担当者へ）</label></li>
+    <li><input type="checkbox" id="prep-13"><label for="prep-13">試しに <code>/workers</code> を開き、実データが多数見えるはず（PIIを長時間開きっぱなしにしない）</label></li>
+  </ul>
+</div>
+
+<!-- 4. 基本ルール -->
+<h2 id="rules">4. 検証の基本ルール</h2>
+<div class="card">
+  <h4>「思った通りに動く」の判断基準</h4>
+  <ul>
+    <li>期待通りの画面・データが表示される</li>
+    <li>ボタンや入力が反応する</li>
+    <li>エラーメッセージが分かりやすい</li>
+    <li>動作が遅すぎない（5秒以上は要報告）</li>
+    <li>見た目が崩れていない</li>
+  </ul>
+
+  <h4>本番でやってよい「わざと壊す」テスト</h4>
+  <table>
+    <thead><tr><th>テスト種類</th><th>やること</th><th>期待される挙動</th></tr></thead>
+    <tbody>
+      <tr><td>空欄テスト</td><td><code>[TEST]</code> データの必須項目を空欄のまま保存</td><td>「入力してください」等のエラー</td></tr>
+      <tr><td>長文テスト</td><td>氏名欄に100文字の「あ」を入れる（<code>[TEST]</code> データで）</td><td>保存できるかエラー。画面が崩れない</td></tr>
+      <tr><td>全角/半角</td><td>電話番号を全角で入力</td><td>エラー or 自動変換</td></tr>
+      <tr><td>ゼロ件テスト</td><td>ヒットしない検索キーワードを入力</td><td>「該当なし」表示</td></tr>
+      <tr><td>連打テスト</td><td>保存ボタンを2〜3回連続クリック</td><td>二重登録されない</td></tr>
+      <tr><td>戻るボタン</td><td>ブラウザの戻るを押す</td><td>意図しない画面に飛ばない</td></tr>
+      <tr><td>リロード</td><td>F5 で再読み込み</td><td>ログアウトしない・データが消えない</td></tr>
+    </tbody>
+  </table>
+
+  <h4><span class="badge-forbidden badge">本番では実施しない</span> テスト</h4>
+  <div class="callout callout-danger">
+    以下のテストは本番環境ではやらない。エンジニアがローカル環境で確認します。<strong>やらなくていい代わりに「未実施」と記録</strong>してください。
+  </div>
+  <ul>
+    <li>❌ <code>&lt;script&gt;alert('x')&lt;/script&gt;</code> のような HTML/JS 埋め込みテスト（XSS）</li>
+    <li>❌ <code>'; DROP TABLE workers; --</code> のような SQL 風文字列テスト</li>
+    <li>❌ 大量データ（100件以上）の自動的な作成</li>
+    <li>❌ ネットワーク切断中の保存テスト（Wi-Fi 切ってから保存）</li>
+    <li>❌ 意図的な連続API叩き（負荷試験）</li>
+    <li>❌ 一括削除・一括更新機能の実行</li>
+    <li>❌ 外部連携（Zoom Phone / Google Calendar / メール送信 等）の実行</li>
+  </ul>
+</div>
+
+<!-- 5. バグ報告 -->
+<h2 id="report">5. バグを見つけたときの報告方法</h2>
+<div class="card">
+  <h4>報告テンプレート</h4>
+<pre><code>## バグ報告 #001
+発見日時: 2026/09/14 14:30
+発見者: 山田
+画面: ワーカー詳細
+URL: /workers/[TEST データのID]
+ブラウザ: Chrome 120 / Windows 11
+重要度: 中（低・中・高・致命的）
+検証アカウント: qa-test-yamada@example.com
+
+【再現手順】
+1. ワーカー一覧を開く
+2. [TEST] 検証太郎 の行をクリック
+3. 「編集」ボタンを押す
+4. 電話番号欄を空欄にして「保存」を押す
+
+【期待した動作】
+「電話番号を入力してください」というエラーが出て、保存されない
+
+【実際の動作】
+何のエラーも出ずに保存され、一覧に戻ると電話番号が空欄になっている
+
+【スクリーンショット】
+[スクショを添付 / 実データが写る場合は黒塗り済み]
+
+【備考】
+- ブラウザのリロード後も空欄のまま
+- 別のTESTワーカーでも同じ現象が起きる</code></pre>
+
+  <h4>重要度の目安</h4>
+  <ul>
+    <li><span class="badge badge-red">致命的</span> ログインできない・データが消える・他人のデータが見える・PII漏洩</li>
+    <li><span class="badge badge-orange">高</span> 主要な機能が使えない・保存できない・エラーが止まらない</li>
+    <li><span class="badge badge-blue">中</span> 一部の機能が動かない・見た目が明らかに崩れる</li>
+    <li><span class="badge badge-green">低</span> 誤字・アイコンずれ・軽微な違和感</li>
+  </ul>
+
+  <div class="callout callout-danger">
+    <strong>致命的バグ（特に PII 漏洩系）を発見したら、即座に検証を中断し担当者に直接連絡してください。</strong>
+  </div>
+
+  <h4>スクリーンショットの撮り方</h4>
+  <ul>
+    <li>Windows: <code>Win + Shift + S</code> → 領域選択</li>
+    <li>Mac: <code>Cmd + Shift + 4</code> → 領域選択</li>
+    <li><strong>実データが写る場合は黒塗り必須</strong>（氏名・電話・メール・住所・顔写真）</li>
+    <li>URL の ID 部分（例: <code>/workers/1234</code>）も可能なら隠す</li>
+  </ul>
+</div>
+
+<!-- 6. 共通 -->
+<h2 id="common">6. 共通チェック項目 <span class="section-progress" data-progress="common"></span></h2>
+<p>どの画面を検証するときも、毎回チェックする。</p>
+<div class="card">
+  <h4>見た目</h4>
+  <ul class="checklist" data-section="common">
+    <li><input type="checkbox" id="c-1"><label for="c-1">レイアウトが崩れていない</label></li>
+    <li><input type="checkbox" id="c-2"><label for="c-2">ボタン・リンクの色が統一されている</label></li>
+    <li><input type="checkbox" id="c-3"><label for="c-3">アイコンが正しく表示される</label></li>
+    <li><input type="checkbox" id="c-4"><label for="c-4">画像が読み込まれる</label></li>
+    <li><input type="checkbox" id="c-5"><label for="c-5">日本語が文字化けしない</label></li>
+    <li><input type="checkbox" id="c-6"><label for="c-6">長い名前・住所でもレイアウトが崩れない</label></li>
+  </ul>
+
+  <h4>レスポンシブ</h4>
+  <ul class="checklist" data-section="common">
+    <li><input type="checkbox" id="c-7"><label for="c-7">PCブラウザ幅を狭くしても崩れない</label></li>
+    <li><input type="checkbox" id="c-8"><label for="c-8">タブレットサイズ（幅 768px 程度）で表示できる</label></li>
+    <li><input type="checkbox" id="c-9"><label for="c-9">スマホサイズ（幅 375px 程度）で表示できる</label></li>
+    <li><input type="checkbox" id="c-10"><label for="c-10">サイドバーがスマホでは折りたたまれる</label></li>
+  </ul>
+
+  <h4>動作</h4>
+  <ul class="checklist" data-section="common">
+    <li><input type="checkbox" id="c-11"><label for="c-11">ページ読み込みが5秒以内</label></li>
+    <li><input type="checkbox" id="c-12"><label for="c-12">ボタンを押した反応がある</label></li>
+    <li><input type="checkbox" id="c-13"><label for="c-13">リロード（F5）してもエラーにならない</label></li>
+    <li><input type="checkbox" id="c-14"><label for="c-14">ブラウザの「戻る」で正しく前の画面に戻る</label></li>
+    <li><input type="checkbox" id="c-15"><label for="c-15">ブラウザの「進む」も正しく動く</label></li>
+  </ul>
+
+  <h4>セキュリティ・権限（超重要）</h4>
+  <ul class="checklist" data-section="common">
+    <li><input type="checkbox" id="c-16"><label for="c-16">ログアウト後に URL 直打ちでアクセスするとログイン画面に飛ぶ</label></li>
+    <li><input type="checkbox" id="c-17"><label for="c-17">存在しないIDでアクセス（例: <code>/workers/99999999</code>）するとエラー画面（真っ白にならない）</label></li>
+    <li><input type="checkbox" id="c-18"><label for="c-18">検証アカウントに管理者メニュー（スタッフ管理等）が表示されない</label></li>
+  </ul>
+
+  <h4>テキスト</h4>
+  <ul class="checklist" data-section="common">
+    <li><input type="checkbox" id="c-19"><label for="c-19">誤字・脱字がない</label></li>
+    <li><input type="checkbox" id="c-20"><label for="c-20">ボタン名と実際の動作が一致している</label></li>
+    <li><input type="checkbox" id="c-21"><label for="c-21">エラーメッセージが日本語で分かりやすい</label></li>
+    <li><input type="checkbox" id="c-22"><label for="c-22">プレースホルダーが入力例として適切</label></li>
+  </ul>
+</div>
+
+<!-- 7. 画面別 -->
+<h2 id="screens">7. 画面別チェックリスト</h2>
+<p>該当画面を開いて上から順に消していく。<strong>操作するデータは自分で作った <code>[TEST]</code> データのみ</strong>。実データの一覧表示や検索の動作確認は OK ですが、編集・削除は絶対にしない。</p>
+
+<h3 id="s-login">SCR-001 ログイン <code>/login</code> <span class="section-progress" data-progress="login"></span></h3>
+<ul class="checklist card" data-section="login">
+  <li><input type="checkbox" id="l-1"><label for="l-1">正しいメール・パスワードでログインできる</label></li>
+  <li><input type="checkbox" id="l-2"><label for="l-2">間違ったメールでエラーが出る</label></li>
+  <li><input type="checkbox" id="l-3"><label for="l-3">間違ったパスワードでエラーが出る</label></li>
+  <li><input type="checkbox" id="l-4"><label for="l-4">メール欄を空欄で「ログイン」→ エラー表示</label></li>
+  <li><input type="checkbox" id="l-5"><label for="l-5">パスワード欄を空欄で「ログイン」→ エラー表示</label></li>
+  <li><input type="checkbox" id="l-6"><label for="l-6">パスワードが伏せ字表示される</label></li>
+  <li><input type="checkbox" id="l-7"><label for="l-7">パスワード表示切替（目のアイコン）が動く</label></li>
+  <li><input type="checkbox" id="l-8"><label for="l-8">「パスワードを忘れた」リンクから再設定へ</label></li>
+  <li><input type="checkbox" id="l-9"><label for="l-9">ログイン直後、ダッシュボードに遷移</label></li>
+  <li><input type="checkbox" id="l-10"><label for="l-10">スマホ画面でも入力しやすい</label></li>
+</ul>
+<textarea class="note-area" data-note="login" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-dash">SCR-002 ダッシュボード <code>/dashboard</code> <span class="section-progress" data-progress="dash"></span></h3>
+<p><strong>注意:</strong> ダッシュボードの数字は本物の集計です。押しても遷移するだけなので触ってOKですが、遷移先で編集・削除はしない。</p>
+<ul class="checklist card" data-section="dash">
+  <li><input type="checkbox" id="d-1"><label for="d-1">KPIカード6種が全部表示される</label></li>
+  <li><input type="checkbox" id="d-2"><label for="d-2">各KPIカードの数字が表示される（0でも正しく）</label></li>
+  <li><input type="checkbox" id="d-3"><label for="d-3">KPIカードをクリックすると該当ワーカー一覧に遷移する</label></li>
+  <li><input type="checkbox" id="d-4"><label for="d-4">「本日のタスク」が表示される（自分に割り当てられているものだけ）</label></li>
+  <li><input type="checkbox" id="d-5"><label for="d-5">自分の <code>[TEST]</code> タスクを作って完了チェックが押せるか確認</label></li>
+  <li><input type="checkbox" id="d-6"><label for="d-6">「最近の連絡履歴」タイムラインが表示される</label></li>
+  <li><input type="checkbox" id="d-7"><label for="d-7">タイムラインから遷移できる（実データワーカーは表示だけで戻る）</label></li>
+  <li><input type="checkbox" id="d-8"><label for="d-8">リロードしても表示が維持される</label></li>
+</ul>
+<textarea class="note-area" data-note="dash" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-workers">SCR-003 ワーカー一覧 <code>/workers</code> <span class="section-progress" data-progress="workers"></span></h3>
+<p><strong>注意:</strong> 一覧の実データは表示 OK。行クリックで詳細を開くのも OK ですが、開いたら見るだけで戻る。編集・削除は <code>[TEST]</code> 行のみ。</p>
+<ul class="checklist card" data-section="workers">
+  <li><input type="checkbox" id="w-1"><label for="w-1">登録済みワーカーが一覧表示される</label></li>
+  <li><input type="checkbox" id="w-2"><label for="w-2">キーワード検索で <code>TEST</code> を入れると自分の作成データが出る</label></li>
+  <li><input type="checkbox" id="w-3"><label for="w-3">フリガナ検索で <code>[TEST]</code> データがヒット</label></li>
+  <li><input type="checkbox" id="w-4"><label for="w-4">電話番号検索で <code>000-0000</code> が動く</label></li>
+  <li><input type="checkbox" id="w-5"><label for="w-5">一致0件で「該当なし」等の案内が出る</label></li>
+  <li><input type="checkbox" id="w-6"><label for="w-6">フィルター（ステータス）で絞り込める</label></li>
+  <li><input type="checkbox" id="w-7"><label for="w-7">フィルター（職種）で絞り込める</label></li>
+  <li><input type="checkbox" id="w-8"><label for="w-8">フィルター（資格）で絞り込める</label></li>
+  <li><input type="checkbox" id="w-9"><label for="w-9">フィルター（タグ）で絞り込める</label></li>
+  <li><input type="checkbox" id="w-10"><label for="w-10">フィルター（担当者）で絞り込める</label></li>
+  <li><input type="checkbox" id="w-11"><label for="w-11">クイックフィルター切替（全件・対応必要・稼働可能）が動く</label></li>
+  <li><input type="checkbox" id="w-12"><label for="w-12">28日間稼働可能日グリッドが表示される</label></li>
+  <li><input type="checkbox" id="w-13"><label for="w-13">「新規登録」ボタンで登録画面へ</label></li>
+  <li><input type="checkbox" id="w-14"><label for="w-14">行クリックで詳細画面へ（実データも遷移確認OK・編集はしない）</label></li>
+  <li><input type="checkbox" id="w-15"><label for="w-15">ページネーションが動く</label></li>
+  <li><input type="checkbox" id="w-16"><label for="w-16">検索条件を入れたままページ移動しても条件が保持される</label></li>
+</ul>
+<textarea class="note-area" data-note="workers" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-worker-new">SCR-004 ワーカー新規登録 <code>/workers/new</code> <span class="section-progress" data-progress="wnew"></span></h3>
+<p><strong>注意:</strong> ここで作るデータは全部 <code>[TEST]</code> プレフィックス必須。命名規則は「2.1」参照。作った ID は「10. テストデータ管理」に記録して、後で必ず削除する。</p>
+<ul class="checklist card" data-section="wnew">
+  <li><input type="checkbox" id="wn-1"><label for="wn-1">「氏名だけで登録できます」の案内が表示される</label></li>
+  <li><input type="checkbox" id="wn-2"><label for="wn-2"><code>[TEST] 検証太郎1</code> だけで登録できる</label></li>
+  <li><input type="checkbox" id="wn-3"><label for="wn-3">氏名を空欄で保存を押すとエラー</label></li>
+  <li><input type="checkbox" id="wn-4"><label for="wn-4">フリガナを手動でも入れられる</label></li>
+  <li><input type="checkbox" id="wn-5"><label for="wn-5">生年月日カレンダーが動く（<code>2000-01-01</code> 等 架空日付）</label></li>
+  <li><input type="checkbox" id="wn-6"><label for="wn-6">未来日を生年月日にするとエラー or Warning</label></li>
+  <li><input type="checkbox" id="wn-7"><label for="wn-7">性別の選択肢が全部選べる</label></li>
+  <li><input type="checkbox" id="wn-8"><label for="wn-8">電話番号 <code>000-0000-0001</code> で保存できる</label></li>
+  <li><input type="checkbox" id="wn-9"><label for="wn-9">メール <code>@</code> なしでエラー、<code>test@example.com</code> でOK</label></li>
+  <li><input type="checkbox" id="wn-10"><label for="wn-10">架空住所（テスト区テスト町）でジオコーディングエラーの挙動を確認</label></li>
+  <li><input type="checkbox" id="wn-11"><label for="wn-11">保有資格を複数選択できる</label></li>
+  <li><input type="checkbox" id="wn-12"><label for="wn-12">保存後、詳細画面に遷移する</label></li>
+  <li><input type="checkbox" id="wn-13"><label for="wn-13">「キャンセル」で一覧に戻る</label></li>
+  <li><input type="checkbox" id="wn-14"><label for="wn-14">途中で他画面へ移動しようとすると「未保存」確認ダイアログ</label></li>
+  <li><input type="checkbox" id="wn-15"><label for="wn-15">保存ボタン連打で二重登録されない</label></li>
+</ul>
+<textarea class="note-area" data-note="wnew" placeholder="作成したTESTワーカー: [TEST]検証太郎1 (ID: xxx) など"></textarea>
+
+<h3 id="s-worker-detail">SCR-005 ワーカー詳細 <code>/workers/[id]</code> <span class="section-progress" data-progress="wdetail"></span></h3>
+<p><strong>注意:</strong> 編集・タグ変更・ステータス変更・削除はすべて <strong>自分が作った <code>[TEST]</code> ワーカーに対してのみ</strong>。</p>
+<ul class="checklist card" data-section="wdetail">
+  <li><input type="checkbox" id="wd-1"><label for="wd-1">登録した内容がすべて正しく表示される（自分の [TEST] ワーカー）</label></li>
+  <li><input type="checkbox" id="wd-2"><label for="wd-2">アセスメント情報を変更できる（[TEST] のみ）</label></li>
+  <li><input type="checkbox" id="wd-3"><label for="wd-3">タグを追加できる（<code>[TEST] 検証タグ</code> を事前に作っておく）</label></li>
+  <li><input type="checkbox" id="wd-4"><label for="wd-4">タグを削除できる（[TEST] タグのみ）</label></li>
+  <li><input type="checkbox" id="wd-5"><label for="wd-5">ステータス変更で確認ダイアログが出る</label></li>
+  <li><input type="checkbox" id="wd-6"><label for="wd-6">ステータス変更後、Undo（元に戻す）ができる</label></li>
+  <li><input type="checkbox" id="wd-7"><label for="wd-7">「連絡記録」ボタンでモーダルが開く（保存内容は [検証用] メモに）</label></li>
+  <li><input type="checkbox" id="wd-8"><label for="wd-8">「提案作成」ボタンでモーダルが開く（実際の案件を選ぶのはOK、提案作成は [TEST] 案件のみ）</label></li>
+  <li><input type="checkbox" id="wd-9"><label for="wd-9">稼働可能日カレンダーで日付をタップして状態変更できる（[TEST] ワーカー）</label></li>
+  <li><input type="checkbox" id="wd-10"><label for="wd-10">各サブページに遷移できる</label></li>
+  <li><input type="checkbox" id="wd-11"><label for="wd-11">一般ユーザーには削除ボタンが表示されない or 押せない（検証アカウントで確認）</label></li>
+  <li><input type="checkbox" id="wd-12"><label for="wd-12">存在しないIDでアクセスすると「見つかりません」表示</label></li>
+</ul>
+<textarea class="note-area" data-note="wdetail" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-worker-edit">SCR-006 ワーカー編集 <code>/workers/[id]/edit</code> <span class="section-progress" data-progress="wedit"></span></h3>
+<p><strong>注意:</strong> 自分の <code>[TEST]</code> ワーカーのみ。</p>
+<ul class="checklist card" data-section="wedit">
+  <li><input type="checkbox" id="we-1"><label for="we-1">登録済み情報が入力欄に入っている</label></li>
+  <li><input type="checkbox" id="we-2"><label for="we-2">修正して保存すると詳細画面で反映されている</label></li>
+  <li><input type="checkbox" id="we-3"><label for="we-3">「キャンセル」で詳細に戻る</label></li>
+  <li><input type="checkbox" id="we-4"><label for="we-4">必須項目を空にすると保存できない</label></li>
+  <li><input type="checkbox" id="we-5"><label for="we-5">未保存で離脱しようとすると確認が出る</label></li>
+</ul>
+<textarea class="note-area" data-note="wedit" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-proposals">SCR-007 提案一覧 <code>/workers/[id]/proposals</code> <span class="section-progress" data-progress="prop"></span></h3>
+<p><strong>注意:</strong> 提案作成の相手方は <code>[TEST]</code> 案件のみを使う。実案件に <code>[TEST]</code> ワーカーを提案するのも NG（施設側担当者に見えてしまう）。</p>
+<ul class="checklist card" data-section="prop">
+  <li><input type="checkbox" id="p-1"><label for="p-1">過去の提案履歴が新しい順に表示される</label></li>
+  <li><input type="checkbox" id="p-2"><label for="p-2">「新規提案」で案件選択ダイアログが開く</label></li>
+  <li><input type="checkbox" id="p-3"><label for="p-3"><code>[TEST]</code> 案件を選んで提案日を入れて保存できる</label></li>
+  <li><input type="checkbox" id="p-4"><label for="p-4">ステータス変更が動く</label></li>
+  <li><input type="checkbox" id="p-5"><label for="p-5">辞退時に辞退理由を記録できる</label></li>
+  <li><input type="checkbox" id="p-6"><label for="p-6">提案がゼロ件のとき「提案なし」表示</label></li>
+  <li><input type="checkbox" id="p-7"><label for="p-7">提案から案件詳細へリンクで飛べる</label></li>
+</ul>
+<textarea class="note-area" data-note="prop" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-skill">SCR-008 スキルシート <code>/workers/[id]/skill-sheet</code> <span class="section-progress" data-progress="skill"></span></h3>
+<ul class="checklist card" data-section="skill">
+  <li><input type="checkbox" id="sk-1"><label for="sk-1">年齢・住所・最寄駅・資格が表示される</label></li>
+  <li><input type="checkbox" id="sk-2"><label for="sk-2">職務経歴を追加できる（[TEST] ワーカーに）</label></li>
+  <li><input type="checkbox" id="sk-3"><label for="sk-3">職務経歴を編集できる</label></li>
+  <li><input type="checkbox" id="sk-4"><label for="sk-4">職務経歴を削除できる（確認あり）</label></li>
+  <li><input type="checkbox" id="sk-5"><label for="sk-5">会社説明文を編集できる（自分のTESTワーカーのみ）</label></li>
+  <li><input type="checkbox" id="sk-6"><label for="sk-6">印刷ボタンでプレビューが開く（キャンセル可）</label></li>
+  <li><input type="checkbox" id="sk-7"><label for="sk-7">印刷プレビューで文字が切れない</label></li>
+  <li><input type="checkbox" id="sk-8"><label for="sk-8">印刷プレビューでレイアウトが崩れない（A4想定）</label></li>
+</ul>
+<textarea class="note-area" data-note="skill" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-contact">SCR-009 連絡履歴 <span class="section-progress" data-progress="contact"></span></h3>
+<p><strong>注意:</strong> 記録メモに <code>[検証用データ / 削除OK]</code> を必ず先頭に入れる。</p>
+<ul class="checklist card" data-section="contact">
+  <li><input type="checkbox" id="co-1"><label for="co-1">過去の連絡が新しい順に表示される</label></li>
+  <li><input type="checkbox" id="co-2"><label for="co-2">連絡手段（電話・LINE・SMS・メモ）で色分け／アイコン表示</label></li>
+  <li><input type="checkbox" id="co-3"><label for="co-3">新規記録で連絡手段が選べる</label></li>
+  <li><input type="checkbox" id="co-4"><label for="co-4">新規記録で結果・メモが入れられる</label></li>
+  <li><input type="checkbox" id="co-5"><label for="co-5">次回アクション日が設定できる</label></li>
+  <li><input type="checkbox" id="co-6"><label for="co-6">メモに長文を入れても保存できる／画面が崩れない</label></li>
+</ul>
+<textarea class="note-area" data-note="contact" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-status">SCR-010 ステータス変更履歴 <span class="section-progress" data-progress="status"></span></h3>
+<ul class="checklist card" data-section="status">
+  <li><input type="checkbox" id="st-1"><label for="st-1">変更日時が時系列で並ぶ</label></li>
+  <li><input type="checkbox" id="st-2"><label for="st-2">変更前 → 変更後 が明確に表示される</label></li>
+  <li><input type="checkbox" id="st-3"><label for="st-3">変更者名が表示される</label></li>
+  <li><input type="checkbox" id="st-4"><label for="st-4">履歴ゼロ件でもエラーにならない（新規TESTワーカーで確認）</label></li>
+</ul>
+<textarea class="note-area" data-note="status" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-jo">SCR-011 求人案件一覧 <code>/job-offers</code> <span class="section-progress" data-progress="jo"></span></h3>
+<ul class="checklist card" data-section="jo">
+  <li><input type="checkbox" id="jo-1"><label for="jo-1">キーワード検索が動く</label></li>
+  <li><input type="checkbox" id="jo-2"><label for="jo-2">職種フィルターが動く</label></li>
+  <li><input type="checkbox" id="jo-3"><label for="jo-3">勤務地フィルターが動く</label></li>
+  <li><input type="checkbox" id="jo-4"><label for="jo-4">ステータスフィルターが動く</label></li>
+  <li><input type="checkbox" id="jo-5"><label for="jo-5">施設フィルターが動く</label></li>
+  <li><input type="checkbox" id="jo-6"><label for="jo-6">商談結果（契約）フィルタが動く</label></li>
+  <li><input type="checkbox" id="jo-7"><label for="jo-7">新規登録ボタンが動く</label></li>
+  <li><input type="checkbox" id="jo-8"><label for="jo-8">行クリックで詳細へ遷移（実案件は見るだけ）</label></li>
+</ul>
+<textarea class="note-area" data-note="jo" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-jo-new">SCR-012 求人案件新規登録 <code>/job-offers/new</code> <span class="section-progress" data-progress="jonew"></span></h3>
+<p><strong>注意:</strong> タイトルは <code>[TEST] </code> で始める。紐づけ施設は自分で作った <code>[TEST]</code> 施設を選ぶ。</p>
+<ul class="checklist card" data-section="jonew">
+  <li><input type="checkbox" id="jn-1"><label for="jn-1">タイトル・職種・勤務地・時給・スケジュールを入れて保存できる</label></li>
+  <li><input type="checkbox" id="jn-2"><label for="jn-2">紐づけ施設を選べる（[TEST] 施設）</label></li>
+  <li><input type="checkbox" id="jn-3"><label for="jn-3">施設を選ぶと関連情報が反映される</label></li>
+  <li><input type="checkbox" id="jn-4"><label for="jn-4">必須項目のバリデーションが動く</label></li>
+  <li><input type="checkbox" id="jn-5"><label for="jn-5">時給に文字を入れるとエラー</label></li>
+  <li><input type="checkbox" id="jn-6"><label for="jn-6">保存後、詳細画面へ遷移</label></li>
+  <li><input type="checkbox" id="jn-7"><label for="jn-7">キャンセルで一覧に戻る</label></li>
+</ul>
+<textarea class="note-area" data-note="jonew" placeholder="作成したTEST案件: [TEST]動作確認用案件A (ID: xxx) など"></textarea>
+
+<h3 id="s-jo-detail">SCR-013 求人案件詳細 <code>/job-offers/[id]</code> <span class="section-progress" data-progress="jodetail"></span></h3>
+<p><strong>注意:</strong> 編集・削除は自分の <code>[TEST]</code> 案件のみ。</p>
+<ul class="checklist card" data-section="jodetail">
+  <li><input type="checkbox" id="jd-1"><label for="jd-1">案件情報が表示される</label></li>
+  <li><input type="checkbox" id="jd-2"><label for="jd-2">「編集」で編集モードに切り替わる</label></li>
+  <li><input type="checkbox" id="jd-3"><label for="jd-3">インライン編集で保存できる（[TEST] 案件）</label></li>
+  <li><input type="checkbox" id="jd-4"><label for="jd-4">紐づく施設リンクから施設詳細へ</label></li>
+  <li><input type="checkbox" id="jd-5"><label for="jd-5">提案一覧が表示される</label></li>
+  <li><input type="checkbox" id="jd-6"><label for="jd-6">「新規提案」でワーカー選択ダイアログが出る（提案作成は [TEST] ワーカーに）</label></li>
+  <li><input type="checkbox" id="jd-7"><label for="jd-7">論理削除で影響範囲確認ダイアログが出る（実行は [TEST] 案件のみ）</label></li>
+</ul>
+<textarea class="note-area" data-note="jodetail" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-fac">SCR-014 施設一覧 <code>/facilities</code> <span class="section-progress" data-progress="fac"></span></h3>
+<ul class="checklist card" data-section="fac">
+  <li><input type="checkbox" id="f-1"><label for="f-1">キーワード検索が動く</label></li>
+  <li><input type="checkbox" id="f-2"><label for="f-2">施設種別フィルターが動く</label></li>
+  <li><input type="checkbox" id="f-3"><label for="f-3">エリアフィルターが動く</label></li>
+  <li><input type="checkbox" id="f-4"><label for="f-4">新規登録ボタンで登録画面へ</label></li>
+  <li><input type="checkbox" id="f-5"><label for="f-5">行クリックで詳細へ（実施設は見るだけ）</label></li>
+</ul>
+<textarea class="note-area" data-note="fac" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-fac-new">SCR-015 施設新規登録 <code>/facilities/new</code> <span class="section-progress" data-progress="facnew"></span></h3>
+<p><strong>注意:</strong> 施設名は <code>[TEST] </code> で始める。住所は「テスト区テスト町」等の架空。</p>
+<ul class="checklist card" data-section="facnew">
+  <li><input type="checkbox" id="fn-1"><label for="fn-1"><code>[TEST] 検証施設A</code> で保存できる</label></li>
+  <li><input type="checkbox" id="fn-2"><label for="fn-2">住所を入力すると自動で緯度経度が取れる（実在住所で試す場合は東京駅など公共施設）</label></li>
+  <li><input type="checkbox" id="fn-3"><label for="fn-3">存在しない住所を入れたときに適切なエラー</label></li>
+  <li><input type="checkbox" id="fn-4"><label for="fn-4">保存後、詳細画面へ</label></li>
+  <li><input type="checkbox" id="fn-5"><label for="fn-5">キャンセルで一覧に戻る</label></li>
+</ul>
+<textarea class="note-area" data-note="facnew" placeholder="作成したTEST施設: [TEST]検証施設A (ID: xxx) など"></textarea>
+
+<h3 id="s-fac-detail">SCR-016 施設詳細 <code>/facilities/[id]</code> <span class="section-progress" data-progress="facdetail"></span></h3>
+<p><strong>注意:</strong> 削除は <code>[TEST]</code> 施設のみ。実施設の削除は絶対NG（紐づく案件・提案も影響）。</p>
+<ul class="checklist card" data-section="facdetail">
+  <li><input type="checkbox" id="fd-1"><label for="fd-1">施設情報が表示される</label></li>
+  <li><input type="checkbox" id="fd-2"><label for="fd-2">紐づく求人案件一覧が表示される</label></li>
+  <li><input type="checkbox" id="fd-3"><label for="fd-3">求人案件をクリックすると案件詳細へ</label></li>
+  <li><input type="checkbox" id="fd-4"><label for="fd-4">提案履歴が表示される</label></li>
+  <li><input type="checkbox" id="fd-5"><label for="fd-5">「編集」ボタンで編集画面へ</label></li>
+  <li><input type="checkbox" id="fd-6"><label for="fd-6">論理削除で影響範囲確認ダイアログ（実行は [TEST] のみ）</label></li>
+</ul>
+<textarea class="note-area" data-note="facdetail" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-fac-edit">SCR-017 施設編集 <code>/facilities/[id]/edit</code> <span class="section-progress" data-progress="facedit"></span></h3>
+<ul class="checklist card" data-section="facedit">
+  <li><input type="checkbox" id="fe-1"><label for="fe-1">登録済み情報が入力欄に入っている（[TEST] 施設で確認）</label></li>
+  <li><input type="checkbox" id="fe-2"><label for="fe-2">修正して保存できる</label></li>
+  <li><input type="checkbox" id="fe-3"><label for="fe-3">キャンセルで詳細に戻る</label></li>
+</ul>
+<textarea class="note-area" data-note="facedit" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-map">SCR-018 地図 <code>/map</code> <span class="section-progress" data-progress="map"></span></h3>
+<p><strong>注意:</strong> ピンから遷移する場合、実データを開いたら「見て戻る」だけ。</p>
+<ul class="checklist card" data-section="map">
+  <li><input type="checkbox" id="m-1"><label for="m-1">地図が表示される（真っ白にならない）</label></li>
+  <li><input type="checkbox" id="m-2"><label for="m-2">ワーカーのピンが表示される</label></li>
+  <li><input type="checkbox" id="m-3"><label for="m-3">求人案件のピンが表示される</label></li>
+  <li><input type="checkbox" id="m-4"><label for="m-4">施設のピンが表示される</label></li>
+  <li><input type="checkbox" id="m-5"><label for="m-5">表示種別のフィルタが動く</label></li>
+  <li><input type="checkbox" id="m-6"><label for="m-6">ピンをクリックするとポップアップが出る</label></li>
+  <li><input type="checkbox" id="m-7"><label for="m-7">ポップアップから詳細画面に遷移できる</label></li>
+  <li><input type="checkbox" id="m-8"><label for="m-8">ワーカー中心ビューに切り替えられる</label></li>
+  <li><input type="checkbox" id="m-9"><label for="m-9">近隣検索が動く</label></li>
+  <li><input type="checkbox" id="m-10"><label for="m-10">地図の拡大・縮小が動く</label></li>
+  <li><input type="checkbox" id="m-11"><label for="m-11">ドラッグで移動できる</label></li>
+  <li><input type="checkbox" id="m-12"><label for="m-12">スマホでもピンチイン／アウトが動く</label></li>
+</ul>
+<textarea class="note-area" data-note="map" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-tasks">SCR-019 タスク一覧 <code>/tasks</code> <span class="section-progress" data-progress="tasks"></span></h3>
+<p><strong>注意:</strong> 新規タスク作成は <code>[TEST]</code> プレフィックス必須。実タスクの完了・削除は絶対NG。</p>
+<ul class="checklist card" data-section="tasks">
+  <li><input type="checkbox" id="t-1"><label for="t-1">タスク一覧が表示される</label></li>
+  <li><input type="checkbox" id="t-2"><label for="t-2"><code>[TEST]</code> タスクを新規作成できる</label></li>
+  <li><input type="checkbox" id="t-3"><label for="t-3">自分の [TEST] タスクのステータス更新（未着手→対応中→完了）</label></li>
+  <li><input type="checkbox" id="t-4"><label for="t-4">種別フィルタが動く</label></li>
+  <li><input type="checkbox" id="t-5"><label for="t-5">ステータスフィルタが動く</label></li>
+  <li><input type="checkbox" id="t-6"><label for="t-6">担当者フィルタが動く</label></li>
+  <li><input type="checkbox" id="t-7"><label for="t-7">期限日ソートが動く</label></li>
+  <li><input type="checkbox" id="t-8"><label for="t-8">紐づくワーカー詳細へ遷移できる（[TEST] ワーカー）</label></li>
+</ul>
+<textarea class="note-area" data-note="tasks" placeholder="作成したTESTタスク一覧..."></textarea>
+
+<h3 id="s-settings">SCR-020 設定 <code>/settings</code> <span class="section-progress" data-progress="settings"></span></h3>
+<p><strong>注意:</strong> 設定画面は「表示確認のみ」。設定値の変更は絶対にしない（全ユーザーに影響）。</p>
+<ul class="checklist card" data-section="settings">
+  <li><input type="checkbox" id="se-1"><label for="se-1">スタッフ管理へのリンクが表示される（アクセス権があれば）</label></li>
+  <li><input type="checkbox" id="se-2"><label for="se-2">タグ管理へのリンクが表示される</label></li>
+  <li><input type="checkbox" id="se-3"><label for="se-3">サブメニューが表示される（表示だけ確認、設定変更はしない）</label></li>
+  <li><input type="checkbox" id="se-4"><label for="se-4">一般ユーザー（検証アカウント）で見えないメニューが正しく制御されている</label></li>
+</ul>
+<textarea class="note-area" data-note="settings" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-staff">SCR-021 スタッフ管理 <code>/settings/staff</code> <span class="section-progress" data-progress="staff"></span></h3>
+<p><strong>注意:</strong> 表示のみ。<strong>実スタッフの編集・削除は絶対NG</strong>。テストアカウントで見えないはずだが、もし見えていたら重大バグとして報告。</p>
+<ul class="checklist card" data-section="staff">
+  <li><input type="checkbox" id="sf-1"><label for="sf-1">検証アカウントでアクセスすると権限エラー or メニューが表示されない</label></li>
+  <li><input type="checkbox" id="sf-2"><label for="sf-2">（もし見えたら）スタッフ一覧が表示される（名前・メール・ロール）</label></li>
+  <li><input type="checkbox" id="sf-3"><label for="sf-3">ロール別の色分け・並びが正しい</label></li>
+</ul>
+<textarea class="note-area" data-note="staff" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<h3 id="s-tags">SCR-022 タグ管理 <code>/settings/tags</code> <span class="section-progress" data-progress="tags"></span></h3>
+<p><strong>注意:</strong> <strong>実運用中のタグは絶対に削除しない</strong>（使用中のタグを消すと本物ワーカーからも消える）。作成は <code>[TEST]</code> プレフィックス。</p>
+<ul class="checklist card" data-section="tags">
+  <li><input type="checkbox" id="tg-1"><label for="tg-1">タグ一覧が表示される（名前・色・カテゴリ・使用数）</label></li>
+  <li><input type="checkbox" id="tg-2"><label for="tg-2"><code>[TEST] 検証タグ</code> を新規作成できる</label></li>
+  <li><input type="checkbox" id="tg-3"><label for="tg-3">色を選択できる</label></li>
+  <li><input type="checkbox" id="tg-4"><label for="tg-4">カテゴリを設定できる</label></li>
+  <li><input type="checkbox" id="tg-5"><label for="tg-5">[TEST] タグを削除できる（確認ダイアログ）</label></li>
+  <li><input type="checkbox" id="tg-6"><label for="tg-6">使用中のタグを削除しようとすると警告（[TEST] タグを [TEST] ワーカーに付けてから試す）</label></li>
+  <li><input type="checkbox" id="tg-7"><label for="tg-7">同名タグを作成しようとするとエラー</label></li>
+</ul>
+<textarea class="note-area" data-note="tags" placeholder="作成したTESTタグ..."></textarea>
+
+<h3 id="s-deals">追加機能: 案件（Deals）・テレアポ <span class="section-progress" data-progress="deals"></span></h3>
+<p>画面: <code>/deals</code>, <code>/deals/[dealId]</code>, <code>/deals/dashboard</code>, <code>/teleapo</code>, <code>/teleapo-dashboard</code></p>
+<div class="callout callout-danger">
+  <strong>Zoom Phone との連携ボタンは押さない</strong>（実際に電話がかかる可能性）。連携動作の確認はエンジニア立ち会いで別途実施。
+</div>
+<ul class="checklist card" data-section="deals">
+  <li><input type="checkbox" id="de-1"><label for="de-1">案件一覧が表示される</label></li>
+  <li><input type="checkbox" id="de-2"><label for="de-2">案件詳細で情報が正しく表示される（[TEST] 案件で確認）</label></li>
+  <li><input type="checkbox" id="de-3"><label for="de-3">案件ダッシュボードが動く</label></li>
+  <li><input type="checkbox" id="de-4"><label for="de-4">テレアポ一覧の検索・フィルタが動く</label></li>
+  <li><input type="checkbox" id="de-5"><label for="de-5">テレアポの商談結果フィルタが動く</label></li>
+  <li><input type="checkbox" id="de-6"><label for="de-6">テレアポのステータス変更時に案件登録ダイアログが出る（[TEST] レコードで）</label></li>
+  <li><input type="checkbox" id="de-7"><label for="de-7">❌ Zoom Phone 連携ボタンは <strong>押さない</strong>（存在確認のみ）</label></li>
+</ul>
+<textarea class="note-area" data-note="deals" placeholder="この画面のメモ・気になった点..."></textarea>
+
+<!-- 8. シナリオ -->
+<h2 id="scenario">8. 業務フロー別シナリオテスト <span class="section-progress" data-progress="scenario"></span></h2>
+<div class="callout callout-danger">
+  <strong>すべてのシナリオで登場する「ワーカー・案件・施設」は自分で作った <code>[TEST]</code> データを使うこと。</strong>
+</div>
+
+<h3>シナリオ 1: 新規ワーカー登録から初回提案まで（TESTデータのみ）</h3>
+<ul class="checklist card" data-section="scenario">
+  <li><input type="checkbox" id="sc1-1"><label for="sc1-1">検証アカウントでログイン</label></li>
+  <li><input type="checkbox" id="sc1-2"><label for="sc1-2">/workers/new で <code>[TEST] 検証太郎S1</code> を登録</label></li>
+  <li><input type="checkbox" id="sc1-3"><label for="sc1-3">詳細画面に遷移することを確認</label></li>
+  <li><input type="checkbox" id="sc1-4"><label for="sc1-4">アセスメント情報を入力</label></li>
+  <li><input type="checkbox" id="sc1-5"><label for="sc1-5"><code>[TEST] 検証タグ</code> を追加</label></li>
+  <li><input type="checkbox" id="sc1-6"><label for="sc1-6">ステータスを「新規登録」→「ヒアリング前」に変更</label></li>
+  <li><input type="checkbox" id="sc1-7"><label for="sc1-7">ステータス変更履歴に記録が残っている</label></li>
+  <li><input type="checkbox" id="sc1-8"><label for="sc1-8">/job-offers から自作 <code>[TEST]</code> 案件を選ぶ</label></li>
+  <li><input type="checkbox" id="sc1-9"><label for="sc1-9">その案件を [TEST] ワーカーに提案</label></li>
+  <li><input type="checkbox" id="sc1-10"><label for="sc1-10">ワーカー詳細の「提案」タブに反映されている</label></li>
+</ul>
+
+<h3>シナリオ 2: 求人案件登録から成約まで（TESTデータのみ）</h3>
+<ul class="checklist card" data-section="scenario">
+  <li><input type="checkbox" id="sc2-1"><label for="sc2-1">/facilities/new で <code>[TEST] 検証施設S2</code> を作成</label></li>
+  <li><input type="checkbox" id="sc2-2"><label for="sc2-2">/job-offers/new で上記 [TEST] 施設に紐づく <code>[TEST] 案件S2</code> を作成</label></li>
+  <li><input type="checkbox" id="sc2-3"><label for="sc2-3">/workers から自作 [TEST] ワーカーを検索</label></li>
+  <li><input type="checkbox" id="sc2-4"><label for="sc2-4">そのワーカーに [TEST] 案件を提案</label></li>
+  <li><input type="checkbox" id="sc2-5"><label for="sc2-5">提案ステータスを「興味あり」→「就業確定」に更新</label></li>
+  <li><input type="checkbox" id="sc2-6"><label for="sc2-6">/deals に案件が反映されているか確認</label></li>
+</ul>
+
+<h3>シナリオ 3: 検索・絞り込みの網羅テスト（表示のみ）</h3>
+<p>実データも一覧に混ざりますが、<strong>触るのは検索操作だけ</strong>。開いても見て戻るだけ。</p>
+<ul class="checklist card" data-section="scenario">
+  <li><input type="checkbox" id="sc3-1"><label for="sc3-1">/workers を開く</label></li>
+  <li><input type="checkbox" id="sc3-2"><label for="sc3-2">存在しないキーワード（例: <code>zzzzzzz</code>）で検索 → 「該当なし」</label></li>
+  <li><input type="checkbox" id="sc3-3"><label for="sc3-3"><code>[TEST]</code> で検索 → 自分の作成データだけ</label></li>
+  <li><input type="checkbox" id="sc3-4"><label for="sc3-4">空検索 → 全件出る</label></li>
+  <li><input type="checkbox" id="sc3-5"><label for="sc3-5">フィルターを全部同時にONで絞り込まれる</label></li>
+  <li><input type="checkbox" id="sc3-6"><label for="sc3-6">フィルターを全解除で全件表示に戻る</label></li>
+  <li><input type="checkbox" id="sc3-7"><label for="sc3-7">検索条件を入れたままリロードで条件保持（仕様確認）</label></li>
+</ul>
+
+<h3>シナリオ 4: 権限・セキュリティテスト</h3>
+<p><strong>削除・変更を伴うものは実施しない</strong>。表示制御・アクセス制御のみ確認。</p>
+<ul class="checklist card" data-section="scenario">
+  <li><input type="checkbox" id="sc4-1"><label for="sc4-1">検証アカウント（一般ユーザー）でログイン</label></li>
+  <li><input type="checkbox" id="sc4-2"><label for="sc4-2">スタッフ管理メニューが表示されない or 権限エラー</label></li>
+  <li><input type="checkbox" id="sc4-3"><label for="sc4-3">ログアウトする</label></li>
+  <li><input type="checkbox" id="sc4-4"><label for="sc4-4">ブラウザの戻るを押しても直前の画面に戻れない</label></li>
+  <li><input type="checkbox" id="sc4-5"><label for="sc4-5">URL 直打ちアクセスでログイン画面へリダイレクト</label></li>
+  <li><input type="checkbox" id="sc4-6"><label for="sc4-6">存在しない ID（例: <code>/workers/99999999</code>）で「見つかりません」表示</label></li>
+</ul>
+
+<h3><span class="badge-forbidden badge">本番では実施しない</span> シナリオ（参考）</h3>
+<div class="callout callout-danger">
+  以下は本番では絶対にやらない。エンジニアがローカル環境で実施します。
+</div>
+<ul>
+  <li>❌ ゴミデータ耐性テスト（<code>&lt;script&gt;</code>, SQL 風文字列など）</li>
+  <li>❌ ネットワーク切断中の保存テスト</li>
+  <li>❌ 大量データ作成テスト</li>
+  <li>❌ 一括操作・一括削除テスト</li>
+  <li>❌ 外部連携（Zoom Phone / メール送信 等）の実行テスト</li>
+</ul>
+
+<!-- 9. 検証環境 -->
+<h2 id="env">9. 検証環境バリエーション <span class="section-progress" data-progress="env"></span></h2>
+<p>同じ検証を、以下の環境それぞれで最低1回は試してください（本番URLに対して、ブラウザだけ切り替える）。</p>
+
+<div class="card">
+  <h4>ブラウザ</h4>
+  <ul class="checklist" data-section="env">
+    <li><input type="checkbox" id="env-b1"><label for="env-b1">Google Chrome（最新版）</label></li>
+    <li><input type="checkbox" id="env-b2"><label for="env-b2">Microsoft Edge</label></li>
+    <li><input type="checkbox" id="env-b3"><label for="env-b3">Firefox（可能なら）</label></li>
+    <li><input type="checkbox" id="env-b4"><label for="env-b4">Safari（Mac があれば）</label></li>
+  </ul>
+
+  <h4>デバイス</h4>
+  <ul class="checklist" data-section="env">
+    <li><input type="checkbox" id="env-d1"><label for="env-d1">PC（Windows）</label></li>
+    <li><input type="checkbox" id="env-d2"><label for="env-d2">PC（Mac）</label></li>
+    <li><input type="checkbox" id="env-d3"><label for="env-d3">スマホ（iOS Safari）</label></li>
+    <li><input type="checkbox" id="env-d4"><label for="env-d4">スマホ（Android Chrome）</label></li>
+    <li><input type="checkbox" id="env-d5"><label for="env-d5">タブレット（iPad）</label></li>
+  </ul>
+
+  <h4>画面サイズ（Chrome の開発者ツール F12 → デバイスモード）</h4>
+  <ul class="checklist" data-section="env">
+    <li><input type="checkbox" id="env-s1"><label for="env-s1">1920px（フルHD）</label></li>
+    <li><input type="checkbox" id="env-s2"><label for="env-s2">1366px（ノートPC）</label></li>
+    <li><input type="checkbox" id="env-s3"><label for="env-s3">1024px（小型ノート）</label></li>
+    <li><input type="checkbox" id="env-s4"><label for="env-s4">768px（タブレット縦）</label></li>
+    <li><input type="checkbox" id="env-s5"><label for="env-s5">375px（スマホ）</label></li>
+  </ul>
+</div>
+
+<!-- 10. テストデータ管理・クリーンアップ -->
+<h2 id="testdata" class="danger-h">10. テストデータ管理・クリーンアップ</h2>
+
+<div class="card danger-card">
+  <p><strong>本番環境で作成したテストデータは、必ず削除して環境をきれいに保つ責任があります。</strong> 放置すると:</p>
+  <ul>
+    <li>本番の集計値（KPI、稼働ワーカー数等）が汚染される</li>
+    <li>営業活動で誤って [TEST] ワーカーに連絡してしまう</li>
+    <li>次の検証時に古いデータと混ざる</li>
+  </ul>
+</div>
+
+<h3>10.1 作成したテストデータの記録</h3>
+<p>作成するたびに以下の欄に <strong>種別・名前・ID・作成日</strong> を記録してください。ブラウザに自動保存されます。</p>
+
+<textarea class="note-area" data-note="testdata-workers" style="min-height:120px;" placeholder="【TESTワーカー】
+2026/09/14  [TEST]検証太郎1  ID: 1234
+2026/09/14  [TEST]検証太郎2  ID: 1235
+..."></textarea>
+
+<textarea class="note-area" data-note="testdata-facilities" style="min-height:100px;" placeholder="【TEST施設】
+2026/09/14  [TEST]検証施設A  ID: 5678
+..."></textarea>
+
+<textarea class="note-area" data-note="testdata-jo" style="min-height:100px;" placeholder="【TEST案件】
+2026/09/14  [TEST]動作確認用案件  ID: 9012
+..."></textarea>
+
+<textarea class="note-area" data-note="testdata-tags" style="min-height:80px;" placeholder="【TESTタグ】
+[TEST]検証タグ
+..."></textarea>
+
+<textarea class="note-area" data-note="testdata-tasks" style="min-height:80px;" placeholder="【TESTタスク】
+2026/09/14  [TEST]検証タスク1
+..."></textarea>
+
+<h3>10.2 クリーンアップの手順（毎日 or 検証終了時）</h3>
+<div class="card">
+  <p>順番が重要です。<strong>参照している側から先に削除</strong> しないと、参照先が削除できません。</p>
+  <ol>
+    <li><strong>提案</strong> を先に削除（[TEST] ワーカーの提案タブから）</li>
+    <li><strong>連絡履歴</strong> を削除（[TEST] ワーカーの連絡履歴から）</li>
+    <li><strong>タスク</strong> を削除（[TEST] タスク）</li>
+    <li><strong>案件</strong> を削除（[TEST] 案件）</li>
+    <li><strong>ワーカー</strong> を削除（[TEST] ワーカー、論理削除でOK）</li>
+    <li><strong>施設</strong> を削除（[TEST] 施設、他案件が紐づいていないことを確認）</li>
+    <li><strong>タグ</strong> を削除（[TEST] タグ、使用が0になっていることを確認）</li>
+  </ol>
+  <div class="callout callout-warn">
+    論理削除の場合、DB 上にはデータが残ります。物理削除が必要な場合は担当エンジニアに依頼してください。
+  </div>
+</div>
+
+<h3>10.3 クリーンアップチェックリスト</h3>
+<ul class="checklist card" data-section="cleanup">
+  <li><input type="checkbox" id="cl-1"><label for="cl-1">/workers で <code>[TEST]</code> 検索 → ヒット 0 件</label></li>
+  <li><input type="checkbox" id="cl-2"><label for="cl-2">/facilities で <code>[TEST]</code> 検索 → ヒット 0 件</label></li>
+  <li><input type="checkbox" id="cl-3"><label for="cl-3">/job-offers で <code>[TEST]</code> 検索 → ヒット 0 件</label></li>
+  <li><input type="checkbox" id="cl-4"><label for="cl-4">/settings/tags で <code>[TEST]</code> タグが削除されている</label></li>
+  <li><input type="checkbox" id="cl-5"><label for="cl-5">/tasks で <code>[TEST]</code> タスクが削除されている</label></li>
+  <li><input type="checkbox" id="cl-6"><label for="cl-6">削除記録（何をいつ消したか）をシートに残した</label></li>
+</ul>
+
+<textarea class="note-area" data-note="cleanup-log" style="min-height:100px;" placeholder="【削除記録】
+2026/09/14 18:00  [TEST]検証太郎1〜3 を論理削除
+2026/09/14 18:05  [TEST]検証施設A を削除
+..."></textarea>
+
+<!-- 11. 検証記録 -->
+<h2 id="record">11. 検証記録・メモ</h2>
+<div class="card">
+  <h4>日次サマリ</h4>
+  <textarea class="note-area" data-note="daily-summary" style="min-height:180px;" placeholder="例:
+2026/09/14 山田
+- 実施範囲: SCR-003, SCR-004
+- 作成TESTデータ: [TEST]検証太郎1〜3, [TEST]検証施設A
+- OK: 30 / NG: 3
+- バグ: #001, #002, #003
+- クリーンアップ: 完了
+- 気になった点: ページネーションボタンが小さい"></textarea>
+
+  <h4>バグ報告リスト</h4>
+  <textarea class="note-area" data-note="bug-list" style="min-height:240px;" placeholder="例:
+## バグ #001
+- 日時: 2026/09/14 10:15
+- 画面: /workers
+- 重要度: 中
+- 現象: ページ2に移動後、検索キーワードが消える
+- 再現: 検索欄に「[TEST]」→ページ2をクリック
+- 期待: 検索保持 / 実際: 空欄になる
+- スクショ: [リンク・PIIは黒塗り済み]
+"></textarea>
+
+  <h4>「バグではないが気になる」メモ</h4>
+  <textarea class="note-area" data-note="uxmemo" style="min-height:120px;" placeholder="改善提案・小さな違和感"></textarea>
+</div>
+
+<!-- 12. FAQ -->
+<h2 id="faq">12. よくある質問</h2>
+<div class="card">
+  <p><strong>Q. 実データを誤って編集・削除してしまった</strong><br>
+  A. <strong>即座に検証を中断し、担当者に連絡</strong>。何を触ってしまったか、時刻と操作内容を具体的に伝える。復旧できる可能性があるので早いほど良い。</p>
+
+  <p><strong>Q. スタッフ管理メニューが見えてしまう</strong><br>
+  A. 検証アカウントの権限が強すぎる可能性。開かずに担当者へ「権限強すぎるかも」と連絡。</p>
+
+  <p><strong>Q. Zoom Phone のボタンを間違えて押してしまった</strong><br>
+  A. 実際に電話がかかっている可能性あり。<strong>即座に切断し、担当者に連絡</strong>。かかった相手先の情報もメモ。</p>
+
+  <p><strong>Q. これはバグか仕様か判断できない</strong><br>
+  A. バグ扱いで報告してOK。エンジニアが判断する。</p>
+
+  <p><strong>Q. スクショに実データが写ってしまう</strong><br>
+  A. 撮った後に黒塗りする。難しければスクショなしで文字だけの再現手順で報告。</p>
+
+  <p><strong>Q. どこまでが「実データ」で、どこからが「TESTデータ」か分からない</strong><br>
+  A. <code>[TEST]</code> プレフィックスが付いていないものは全部実データと思ってください。少しでも迷ったら触らない。</p>
+
+  <p><strong>Q. 検証中に「本番利用者から連絡が来た」と担当者から言われた</strong><br>
+  A. 即中断。自分の操作が原因かも。時刻と直前の操作を担当者に共有。</p>
+
+  <p><strong>Q. 検証終了時、何をチェックすればいい？</strong><br>
+  A. 「10.3 クリーンアップチェックリスト」を上から全部消化。<code>[TEST]</code> 検索で 0 件になれば OK。</p>
+
+  <p><strong>Q. チェックボックスの進捗はどこに保存される？</strong><br>
+  A. このブラウザのローカルストレージ。別のPCや別のブラウザからは見られません。共有したい場合は印刷 or 記録シートに転記してください。</p>
+
+  <p><strong>Q. 検証アカウントのパスワードを忘れた</strong><br>
+  A. 「パスワードを忘れた」から再設定 or 担当者に依頼。</p>
+</div>
+
+<div style="text-align:center; margin:40px 0; color:var(--muted); font-size:13px;">
+  このマニュアルへの追加・改善提案も歓迎です。気づいたことは記録して共有してください。
+</div>
+
+</main>
+</div>
+
+<script>
+const STORAGE_KEY = 'taslink-qa-progress-prod';
+
+function loadProgress() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  } catch { return {}; }
+}
+function saveProgress(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+const state = loadProgress();
+
+document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+  if (state[cb.id]) {
+    cb.checked = true;
+    const li = cb.closest('li');
+    if (li) li.classList.add('done');
+  }
+  cb.addEventListener('change', () => {
+    state[cb.id] = cb.checked;
+    saveProgress(state);
+    const li = cb.closest('li');
+    if (li) li.classList.toggle('done', cb.checked);
+    updateProgress();
+  });
+});
+
+document.querySelectorAll('textarea[data-note]').forEach(ta => {
+  const key = 'note-' + ta.dataset.note;
+  if (state[key]) ta.value = state[key];
+  ta.addEventListener('input', () => {
+    state[key] = ta.value;
+    saveProgress(state);
+  });
+});
+
+function updateProgress() {
+  document.querySelectorAll('[data-progress]').forEach(el => {
+    const section = el.dataset.progress;
+    const cbs = document.querySelectorAll(`[data-section="${section}"] input[type="checkbox"]`);
+    const done = Array.from(cbs).filter(c => c.checked).length;
+    const total = cbs.length;
+    if (total > 0) {
+      el.textContent = `${done}/${total}`;
+    }
+  });
+  const allCbs = document.querySelectorAll('input[type="checkbox"]');
+  const allDone = Array.from(allCbs).filter(c => c.checked).length;
+  const allTotal = allCbs.length;
+  const overallEl = document.getElementById('overall-progress');
+  const overallBar = document.getElementById('overall-bar');
+  if (overallEl) overallEl.textContent = `全体: ${allDone} / ${allTotal}`;
+  if (overallBar) overallBar.style.width = ((allDone / allTotal) * 100) + '%';
+}
+
+function resetProgress() {
+  if (!confirm('チェック進捗とメモをすべて削除します。よろしいですか？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+function expandAllNotes() {
+  document.querySelectorAll('textarea.note-area').forEach(ta => {
+    ta.style.minHeight = '160px';
+  });
+}
+
+updateProgress();
+</script>
+
+</body>
+</html>
